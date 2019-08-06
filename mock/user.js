@@ -50,9 +50,9 @@ export default [
   // get user info
   {
     url: '/user/info\.*',
-    type: 'get',
+    type: 'post',
     response: config => {
-      const { token } = config.query
+      const { token } = config.body
       const info = users[token]
 
       // mock error

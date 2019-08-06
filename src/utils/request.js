@@ -3,17 +3,34 @@ import { MessageBox, Message } from 'element-ui'
 import store from '@/store'
 import { getToken } from '@/utils/auth'
 
-// create an axios instance
-const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
-  // withCredentials: true, // send cookies when cross-domain requests
-  timeout: 5000 // request timeout
-})
+axios.defaults.baseURL = process.env.VUE_APP_BASE_API
+axios.defaults.headers.post['Content-Type'] = 'application/json;charset=UTF-8'
+axios.defaults.timeout = 5000
+
+/**
+ * axios短时间內的重复请求取消前置未完成请求保证始终获取最新结果。
+ * CancelToken 取消令牌
+ * pending 用于存储每个ajax请求的取消函数和ajax标识
+ */
+const pending = []
+const CancelToken = axios.CancelToken
+
+const removePending = (config) => {
+  for (const p in pending) {
+    if (pending[p].url === config.url + ':' + config.method) {
+      pending[p].cancel('取消请求')
+      pending.splice(p, 1) // 把这条记录从数组中移除
+    }
+  }
+}
 
 // request interceptor
-service.interceptors.request.use(
+axios.interceptors.request.use(
   config => {
-    // do something before request is sent
+    removePending(config) // 在一个请求发送前执行一下取消操作
+    config.cancelToken = new CancelToken(c => {
+      pending.push({ url: config.url + ':' + config.method, cancel: c })
+    })
 
     if (store.getters.token) {
       // let each request carry token
@@ -31,7 +48,7 @@ service.interceptors.request.use(
 )
 
 // response interceptor
-service.interceptors.response.use(
+axios.interceptors.response.use(
   /**
    * If you want to get http information such as headers or status
    * Please return  response => response
@@ -82,4 +99,30 @@ service.interceptors.response.use(
   }
 )
 
-export default service
+function apiAxios(method, url, params) {
+  return new Promise((resolve, reject) => {
+    axios({
+      method,
+      url,
+      data: params,
+      withCredentials: true // 设置 withCredentials 使请求带上 `cookies`
+    })
+      .then(res => { resolve(res) })
+      .catch(rej => { reject(rej) })
+  })
+}
+
+export default {
+  get: function(url) {
+    return apiAxios('GET', url)
+  },
+  post: function(url, params) {
+    return apiAxios('POST', url, params)
+  },
+  put: function(url, params) {
+    return apiAxios('PUT', url, params)
+  },
+  delete: function(url, params) {
+    return apiAxios('DELETE', url, params)
+  }
+}
