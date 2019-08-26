@@ -11,3 +11,4 @@ export function getInfo(token) {
 export function logout() {
   return request.post('/user/logout')
 }
+

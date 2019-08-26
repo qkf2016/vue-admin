@@ -8,33 +8,46 @@ import getPageTitle from '@/utils/get-page-title'
 
 NProgress.configure({ showSpinner: false }) // NProgress Configuration
 
-const whiteList = ['/login'] // no redirect whitelist
+const whiteList = ['/login', '/auth-redirect'] // no redirect whitelist
 
 router.beforeEach(async(to, from, next) => {
   // start progress bar
   NProgress.start()
-
   // set page title
   document.title = getPageTitle(to.meta.title)
-
   // determine whether the user has logged in
   const hasToken = getToken()
-
+  console.log('是否检测到Token:', !!hasToken)
+  console.log('当前导航正要离开:', from.path)
+  console.log('即将要进入:', to.path)
   if (hasToken) {
     if (to.path === '/login') {
       // if is logged in, redirect to the home page
       next({ path: '/' })
       NProgress.done()
     } else {
-      const hasGetUserInfo = store.getters.name
-      if (hasGetUserInfo) {
+      // determine whether the user has obtained his permission roles through getInfo
+      const hasRoles = store.getters.roles && store.getters.roles.length > 0
+      console.log('用户权限是否已知？', hasRoles)
+      if (hasRoles) console.log('权限是', store.getters.roles)
+      if (hasRoles) {
         next()
       } else {
         try {
           // get user info
-          await store.dispatch('user/getInfo')
+          // note: roles must be a object array! such as: ['admin'] or ,['developer','editor']
+          const { roles } = await store.dispatch('user/getInfo')
+          console.log('查询到用户权限是:', roles)
+          // generate accessible routes map based on roles
+          const accessRoutes = await store.dispatch('permission/generateRoutes', roles)
+          console.log('该权限下的异步路由列表是:', accessRoutes)
+          console.log(JSON.stringify(accessRoutes), '=======')
+          // dynamically add accessible routes
+          router.addRoutes(accessRoutes)
 
-          next()
+          // hack method to ensure that addRoutes is complete
+          // set the replace: true, so the navigation will not leave a history record
+          next({ ...to, replace: true })          
         } catch (error) {
           // remove token and go to login page to re-login
           await store.dispatch('user/resetToken')
@@ -45,8 +58,7 @@ router.beforeEach(async(to, from, next) => {
       }
     }
   } else {
-    /* has no token*/
-
+     /* has no token*/
     if (whiteList.indexOf(to.path) !== -1) {
       // in the free login whitelist, go directly
       next()
