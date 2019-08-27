@@ -40,10 +40,13 @@ export const constantRoutes = [
     redirect: '/dashboard',
     children: [
       {
-      path: 'dashboard',
-      name: 'Dashboard',
-      meta: { title: 'Dashboard', icon: 'dashboard' },
-      component: () => import('@/views/dashboard/index')
+        path: 'dashboard',
+        name: 'Dashboard',
+        meta: {
+          title: 'Dashboard',
+          icon: 'dashboard'
+        },
+        component: () => import('@/views/dashboard/index')
       }
     ]
   },
@@ -52,16 +55,16 @@ export const constantRoutes = [
     component: () => import('@/views/login/index'),
     hidden: true
   },
-  { 
+  {
     path: '/404',
     component: () => import('@/views/error-page/404'),
-    hidden: true 
+    hidden: true
   },
-  { 
+  {
     path: '/401',
     component: () => import('@/views/error-page/401'),
-    hidden: true 
-  }  
+    hidden: true
+  }
 ]
 
 export const asyncRoutes = [
@@ -71,10 +74,10 @@ export const asyncRoutes = [
     component: Layout,
     redirect: '/permission/page',
     alwaysShow: true, // will always show the root menu
-    meta: { 
+    meta: {
       title: 'Permission',
       icon: 'lock',
-      roles: ['admin', 'editor'], // you can set roles in root nav
+      roles: ['admin', 'editor'] // you can set roles in root nav
     },
     children: [
       {
